@@ -441,3 +441,85 @@ textarea.big{min-height:115px}.placeholder-hint{opacity:1;font-size:11px;color:#
   .btn-primary, .btn-primary:hover, .filter-chip.active, .filter-chip.active:hover, .board-tools .tool.active { background: #b6dce9; }
   .voice-btn.recording { background: #b93625; }
 }
+
+/* iOS 小组件层次：保留浅蓝水面，统一卡片与分段控件。 */
+.entry.glass, .rec-card.glass {
+  border: 1px solid rgba(255,255,255,.88);
+  background: linear-gradient(145deg, rgba(255,255,255,.68), rgba(235,247,252,.30));
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: inset 0 1px 1px #ffffffed, inset 0 -1px 1px #7aa9be1a, 0 12px 30px #286a8112;
+  border-radius: 30px;
+}
+.entries { gap: 18px; }
+.entry.glass { padding: 26px; min-height: 302px; }
+.entry-top { margin-bottom: 24px; }
+.entry-icon, .entry-feel .entry-icon {
+  width: 60px; height: 60px; border-radius: 21px;
+  background: radial-gradient(ellipse at 20% 0%, #fffffff0, transparent 65%), linear-gradient(145deg, #ffffff80, #b9deed38);
+  box-shadow: inset 0 1px 1px #fff, inset 0 -1px 2px #7aa9be26, 0 7px 16px #286a8114;
+  border: 1px solid #ffffffde;
+}
+.entry-icon svg { width: 30px; height: 30px; }
+.entry-no { font-size: 10px; letter-spacing: .8px; color: #466d7c; background: #ffffff57; border: 1px solid #ffffff90; border-radius: 999px; padding: 5px 9px; }
+.entry h2 { font-size: 23px; font-weight: 650; letter-spacing: .3px; margin-bottom: 8px; }
+.entry .entry-q { color: #345c6c; font-size: 13px; line-height: 1.7; }
+.entry > p:not(.entry-q):not(.entry-dir) { color: #4e707e; line-height: 1.85; }
+.entry .entry-dir { padding-top: 20px; font-size: 12px; color: #306479; }
+.entry-arrow { width: 34px; height: 34px; flex-shrink: 0; }
+.pond-view-toggle {
+  display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px;
+  border: 1px solid #ffffffd9;
+  background: linear-gradient(145deg, #ffffff5e, #b9deed33);
+  box-shadow: inset 0 1px 1px #ffffffe6, inset 0 -1px 2px #286a8112;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.pond-view-toggle .filter-chip {
+  min-height: 40px; padding: 8px 16px; background: transparent;
+  border: 1px solid transparent; box-shadow: none; color: #345c6c;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+.pond-view-toggle .filter-chip.active, .pond-view-toggle .filter-chip.active:hover {
+  background: linear-gradient(145deg, #fffffff2, #d7edf5d9);
+  border-color: #fffffff0; color: #174b61;
+  box-shadow: inset 0 1px 1px #fff, 0 2px 7px #286a811f;
+}
+.pond-toolbar { gap: 10px; align-items: center; }
+.pond-title { font-size: 30px; font-weight: 650; letter-spacing: .3px; }
+.cards { gap: 20px; }
+.rec-card.glass { border-radius: 25px; }
+.rec-thumb { margin: 9px 9px 0; border-radius: 18px; }
+.rec-body { padding: 17px 19px 20px; min-width: 0; }
+.rec-title { white-space: normal; font-size: 17px; font-weight: 600; line-height: 1.5; margin-bottom: 9px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rec-meta { gap: 8px; font-size: 11px; color: #4e707e; }
+.mode-badge { padding: 3px 9px; }
+.rec-tags { gap: 5px; margin-top: 11px; }
+.rec-tags span { background: #ffffff94; color: #456979; border: 1px solid #ffffffb3; padding: 3px 9px; }
+.rec-thumb .noimg { background: linear-gradient(145deg, #d8edf4, #f5fafccc); color: #436a7a; }
+@media (hover: hover) and (pointer: fine) {
+  .entry.glass:hover, .rec-card.glass:hover { transform: translateY(-3px); background: linear-gradient(145deg, #ffffffcf, #ebf7fc80); box-shadow: inset 0 1px 1px #fff, 0 16px 36px #286a8121; }
+}
+@media (max-width: 720px) {
+  .entries { gap: 15px; }
+  .entry.glass { padding: 23px; min-height: 0; border-radius: 28px; }
+  .entry-top { margin: 0 16px 0 0; }
+  .entry-icon, .entry-feel .entry-icon { width: 52px; height: 52px; border-radius: 18px; }
+  .entry-icon svg { width: 27px; height: 27px; }
+  .entry h2 { font-size: 22px; padding-top: 1px; }
+  .entry .entry-dir { padding-top: 12px; }
+  .pond-title { font-size: 27px; }
+  .pond-view-toggle .filter-chip { padding: 8px 12px; }
+  .rec-card.glass { align-items: stretch; border-radius: 24px; }
+  .rec-thumb { margin: 9px 0 9px 9px; flex: 0 0 34%; min-width: 85px; aspect-ratio: 1; border-radius: 16px; }
+  .rec-body { padding: 15px 14px; }
+  .rec-title { font-size: 16px; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .entry.glass, .rec-card.glass, .pond-view-toggle { background: #eff8fb; }
+  .entry.glass:hover, .rec-card.glass:hover { background: #f6fbfd; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .entry.glass, .rec-card.glass, .pond-view-toggle { background: #eff8fb; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .entry.glass:hover, .rec-card.glass:hover { background: #f6fbfd; }
+  .pond-view-toggle .filter-chip.active, .pond-view-toggle .filter-chip.active:hover { background: #d7edf5; }
+}

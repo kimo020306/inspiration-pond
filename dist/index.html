@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>灵感池塘</title>
+<meta name="description" content="收下看见，留住感受，让碎片慢慢相遇。">
+<meta name="theme-color" content="#357F91">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="灵感池塘">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip-link" href="#app">跳到主要内容</a>
+<div class="wrap" id="app" role="main" tabindex="-1">
+    <header class="brand">
+      <div class="brand-left">
+        <div class="brand-dot"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M7 27c7-11 18-11 25-4l9-6-2 13 2 8-10-6c-8 7-18 4-24-5Z" fill="#ed7850"/><path d="M14 20c3 5 3 11 0 14" stroke="#fff" stroke-width="2" opacity=".8"/><circle cx="11" cy="26" r="1.5" fill="#183c4a"/></svg></div>
+        <div>
+          <a class="brand-name" href="#" data-back="home" aria-label="灵感池塘首页">灵感池塘</a>
+          <div class="brand-sub">A LITTLE POND OF IDEAS</div>
+        </div>
+      </div>
+      <a class="brand-nav" href="#pond">我的池塘</a>
+    </header>
+  <!-- 首页 -->
+  <section id="view-home">
+
+
+    <div class="hero">
+      <div class="hero-eyebrow">让灵感，有处可去</div>
+      <h1>这一刻，<br>你想<span>留下什么？</span></h1>
+      <p>一束光，一个念头，或一次心动。<br>不用想得完整，<em>先留下来。</em></p>
+    </div>
+    <div class="entry-section-label">选择一个起点 · 任何碎片都可以</div>
+
+    <div class="entries">
+      <div class="entry glass entry-see" tabindex="0" role="button" data-mode="see">
+        <div class="entry-top"><div class="entry-icon"><svg viewBox="0 0 48 48" width="32" height="32" fill="none" stroke="#357F91" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 24c6-10 15-13 18-13s12 3 18 13c-6 10-15 13-18 13S12 34 6 24z"/><circle cx="24" cy="24" r="6"/></svg></div><span class="entry-no">01 / START HERE</span></div>
+        <h2>始于看见</h2>
+        <p class="entry-q">你被什么吸引了？</p>
+        <p>记录眼前让你停下来的东西——一束光、一种颜色、一件物品、一种构图。</p>
+        <p class="entry-dir">从世界开始 <span class="entry-arrow" aria-hidden="true">↗</span></p>
+      </div>
+      <div class="entry glass entry-feel" tabindex="0" role="button" data-mode="feel">
+        <div class="entry-top"><div class="entry-icon"><svg viewBox="0 0 48 48" width="32" height="32" fill="none" stroke="#F47A4D" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="24" r="10"/><circle cx="17" cy="21" r="2.5" fill="#F47A4D" stroke="none"/><circle cx="31" cy="21" r="2.5" fill="#F47A4D" stroke="none"/><path d="M18 32c2 2.5 10 2.5 12 0"/></svg></div><span class="entry-no">02 / START HERE</span></div>
+        <h2>始于感受</h2>
+        <p class="entry-q">此刻有什么正在发生在你心里？</p>
+        <p>留下突然出现的情绪、记忆、联想、身体感受或一个冒出来的念头。</p>
+        <p class="entry-dir">从内心开始 <span class="entry-arrow" aria-hidden="true">↗</span></p>
+      </div>
+      <div class="entry glass entry-meet" tabindex="0" role="button" data-mode="meet">
+        <div class="entry-top"><div class="entry-icon"><svg viewBox="0 0 48 48" width="32" height="32" fill="none" stroke="#4E9CAD" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="17" cy="24" r="9"/><circle cx="31" cy="24" r="9"/><path d="M28 18c4 3 4 9 0 12"/><path d="M12 20c2-2 6-2 8 0"/><path d="M28 20c2-2 6-2 8 0"/></svg></div><span class="entry-no">03 / START HERE</span></div>
+        <h2>始于相遇</h2>
+        <p class="entry-q">有什么东西，让你心里动了一下？</p>
+        <p>记录外面的事物，以及它为什么偏偏让你停了下来。</p>
+        <p class="entry-dir">从一次相遇开始 <span class="entry-arrow" aria-hidden="true">↗</span></p>
+      </div>
+    </div>
+    <div class="home-foot"><span>不急着成为作品，先成为属于你的碎片。</span><span>COLLECT · CONNECT · CREATE</span></div>
+  </section>
+
+  <!-- 表单 -->
+  <section id="view-form" style="display:none;">
+    <div class="form-page">
+      <a class="back" href="#" id="form-back">← 返回</a>
+      <div class="form-card glass">
+        <h1 id="form-title"></h1>
+        <p class="desc" id="form-desc"></p>
+        <div id="form-body"></div>
+      </div>
+      <div class="save-bar"><button class="btn btn-primary" id="btn-save">放进池塘</button></div>
+    </div>
+  </section>
+
+  <!-- 池塘 -->
+  <section id="view-pond" style="display:none;"></section>
+
+  <!-- 详情 -->
+  <section id="view-detail" style="display:none;"></section>
+
+  <!-- 串联 -->
+  <section id="view-link" style="display:none;"></section>
+
+  <!-- 深化 -->
+  <section id="view-deepen" style="display:none;"></section>
+
+  <!-- 保存成功 -->
+  <section id="view-saved" style="display:none;">
+    <div class="saved-wrap">
+      <div class="saved-card glass">
+        <div class="saved-icon">🫧</div>
+        <h1>已经替你留下来了。</h1>
+        <p class="saved-sub">这条灵感安静地落进了你的池塘。</p>
+        <div class="saved-actions">
+          <button class="btn btn-primary" id="saved-view">看看它</button>
+          <button class="btn btn-ghost" id="saved-continue">继续记录</button>
+        </div>
+        <a href="#" class="saved-link" id="saved-pond">回到池塘</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="backup-input" accept=".json" style="display:none">
+
+<script src="core.js" defer></script>
+<script src="database.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>

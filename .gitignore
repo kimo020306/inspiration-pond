@@ -1,0 +1,9 @@
+node_modules/
+*.log
+*.tar
+*.zip
+.env
+.env.*
+.sites-runtime/
+test-results/
+coverage/

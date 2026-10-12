@@ -1,4 +1,4 @@
-const CACHE = 'inspiration-pond-v1.1.0-restored';
+const CACHE = 'inspiration-pond-v1.1.0-liquid-buttons';
 const FILES = ['./', './index.html', './styles.css', './core.js', './database.js', './app.js', './assets/pond-water.webp', './icon.svg', './icon-192.png', './icon-512.png', './manifest.webmanifest'];
 const ASSETS = new Set(FILES.map(file => new URL(file, self.location.href).href));
 self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES))); });

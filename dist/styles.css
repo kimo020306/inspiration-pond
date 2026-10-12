@@ -372,3 +372,72 @@ textarea.big{min-height:115px}.placeholder-hint{opacity:1;font-size:11px;color:#
 
 
 .collapse-head{border:0;background:transparent;font-family:inherit;text-align:left;width:100%}.entry-section-label{flex-wrap:wrap}.entry-section-label::after{min-width:24px}
+
+/* 液态玻璃按钮：透光表面、弧形高光和轻微折射色边。 */
+.btn, .filter-chip, .brand-nav, .voice-btn, .board-tools .tool, .entry-arrow, .photo-add {
+  color: #24596e;
+  border: 1px solid rgba(255,255,255,.88);
+  background:
+    radial-gradient(ellipse at 14% 0%, rgba(255,255,255,.94), transparent 56%),
+    radial-gradient(ellipse at 94% 100%, rgba(190,221,239,.36), transparent 62%),
+    linear-gradient(135deg, rgba(255,255,255,.48), rgba(255,255,255,.19));
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.98),
+    inset 0 -1px 2px rgba(61,125,153,.15),
+    inset 1px 0 1px rgba(218,205,240,.42),
+    0 5px 14px rgba(38,99,125,.10),
+    0 0 0 1px rgba(93,145,167,.12);
+  backdrop-filter: blur(12px) saturate(1.35);
+  -webkit-backdrop-filter: blur(12px) saturate(1.35);
+  transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+.btn, .filter-chip, .brand-nav, .board-tools .tool { border-radius: 999px; }
+.btn, .filter-chip, .brand-nav { min-height: 44px; }
+.btn-primary, .filter-chip.active, .board-tools .tool.active {
+  color: #174b61;
+  border-color: rgba(255,255,255,.95);
+  background:
+    radial-gradient(ellipse at 16% 0%, rgba(255,255,255,.86), transparent 52%),
+    linear-gradient(135deg, rgba(184,224,240,.94), rgba(139,196,219,.90));
+  box-shadow: inset 0 1px 2px #ffffffed, inset 0 -2px 3px #407e9730, 0 6px 18px #286a812b, 0 0 0 1px #5e9db353;
+  font-weight: 600;
+}
+.voice-btn, .entry-arrow { border-radius: 50%; }
+.voice-btn { width: 40px; height: 40px; }
+.photo-add { border-radius: 24px; border-style: solid; }
+.entry-feel .entry-arrow { color: #9c4524; }
+.voice-btn.recording { background: #b93625; border-color: #fff; color: #fff; }
+.btn-primary:hover, .filter-chip.active:hover {
+  background: radial-gradient(ellipse at 16% 0%, #ffffffe0, transparent 52%), linear-gradient(135deg, #c6e8f5, #a0d0e2);
+}
+.btn:disabled, .btn[aria-disabled='true'], .filter-chip:disabled, .board-tools .tool:disabled {
+  opacity: .55; cursor: not-allowed; transform: none; box-shadow: inset 0 1px 1px #ffffffb3;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn:not(:disabled):not([aria-disabled='true']):hover, .filter-chip:not(:disabled):hover,
+  .brand-nav:hover, .voice-btn:not(.recording):hover, .board-tools .tool:not(:disabled):hover,
+  .photo-add:hover {
+    background-color: rgba(255,255,255,.38);
+    transform: translateY(-1px);
+    box-shadow: inset 0 1px 2px #fff, inset 0 -1px 2px #3d7d9926, 0 8px 20px #26637d24, 0 0 0 1px #ffffffc2;
+  }
+}
+.btn:not(:disabled):not([aria-disabled='true']):active, .filter-chip:not(:disabled):active,
+.brand-nav:active, .voice-btn:active, .board-tools .tool:not(:disabled):active, .photo-add:active {
+  transform: translateY(1px) scale(.98);
+  box-shadow: inset 0 2px 4px #3d7d9926, inset 0 -1px 1px #fff, 0 2px 6px #26637d1c;
+}
+.btn:focus-visible, .filter-chip:focus-visible, .brand-nav:focus-visible,
+.voice-btn:focus-visible, .board-tools .tool:focus-visible, .photo-add:focus-visible {
+  outline: 3px solid #286a81; outline-offset: 4px;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .btn, .filter-chip, .brand-nav, .voice-btn, .board-tools .tool, .entry-arrow, .photo-add { background: #f0f8fb; }
+  .btn-primary, .btn-primary:hover, .filter-chip.active, .filter-chip.active:hover, .board-tools .tool.active { background: #b6dce9; }
+  .voice-btn.recording { background: #b93625; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .btn, .filter-chip, .brand-nav, .voice-btn, .board-tools .tool, .entry-arrow, .photo-add { background: #f0f8fb; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .btn-primary, .btn-primary:hover, .filter-chip.active, .filter-chip.active:hover, .board-tools .tool.active { background: #b6dce9; }
+  .voice-btn.recording { background: #b93625; }
+}

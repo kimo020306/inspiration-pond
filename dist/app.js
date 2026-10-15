@@ -104,9 +104,9 @@ const MODES = {
     autoTitle: '感受',
   },
   meet: {
-    title: '始于相遇',
-    desc: '留下你看见的，也留下它在你心里引起的变化。',
-    autoTitle: '相遇',
+    title: '我都想记录',
+    desc: '看见的、感受到的，都留在这里。',
+    autoTitle: '一起记录',
   }
 };
 
@@ -166,7 +166,7 @@ function renderFormBody(mode) {
     <div class="collapse-body">
       <p class="placeholder-hint" style="margin-top:0">${mode === 'feel' ? '不用画具体物体，用线条、颜色和力度留下感受。' : (mode === 'see' ? '留下轮廓、构图，或者一个值得记住的细节。' : '画下现场，也可以让现场与感受叠在一起。')}</p>
       <div class="board">
-        <canvas id="board-canvas"></canvas>
+        <canvas id="board-canvas" aria-label="速写画布，用手指、鼠标或触控笔绘画"></canvas>
         <div class="board-tools" id="board-tools"></div>
       </div>
     </div>`;
@@ -191,8 +191,9 @@ function renderFormBody(mode) {
       const c = target === 'draw' ? sub : sub2;
       c.classList.toggle('open');
       h.setAttribute('aria-expanded', String(c.classList.contains('open')));
-      if (target === 'draw' && c.classList.contains('open') && !boardRef) {
-        initBoard();
+      if (target === 'draw' && c.classList.contains('open')) {
+        if (!boardRef) initBoard();
+        else boardRef.resize();
       }
     });
   });
@@ -231,7 +232,7 @@ function renderExtraFields(mode) {
       { key: 'bridge', label: '看见与感受之间发生了什么？', type: 'textarea' },
       { key: 'place', label: '地点', type: 'text' },
       { key: 'date', label: '补录日期（选填）', type: 'date' },
-      { key: 'clues', label: '相遇线索', type: 'text', ph: '用空格或逗号分隔' },
+      { key: 'clues', label: '看见与感受的线索', type: 'text', ph: '用空格或逗号分隔' },
     ]);
   }
   fields.forEach(f => {
@@ -286,157 +287,7 @@ async function onPhotoSelect(e) {
 
 /* ================= 白板 ================= */
 function initBoard() {
-  const canvas = document.getElementById('board-canvas');
-  const tools = document.getElementById('board-tools');
-  const ctx = canvas.getContext('2d');
-
-  // 高分辨率适配
-  function resize() {
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const w = rect.width, h = rect.height;
-    // 保留已有内容
-    const old = document.createElement('canvas');
-    old.width = canvas.width; old.height = canvas.height;
-    old.getContext('2d').drawImage(canvas, 0, 0);
-    canvas.width = w * dpr; canvas.height = h * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(old, 0, 0, w, h);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  const state = {
-    color: '#173B47',
-    size: 3,
-    eraser: false,
-    drawing: false,
-    undo: [],
-    redo: [],
-    hasStrokes: false
-  };
-
-  // 工具栏
-  const colors = ['#173B47', '#357F91', '#4E9CAD', '#F47A4D', '#E5523A', '#F5B942'];
-  let toolsHtml = colors.map(c => `<button class="color ${c === state.color ? 'active' : ''}" data-color="${c}" style="background:${c}"></button>`).join('');
-  toolsHtml += `<span class="spacer"></span>
-    <button class="tool" data-act="pen">画笔</button>
-    <button class="tool" data-act="eraser">橡皮</button>
-    <input type="range" min="1" max="16" value="3" id="size-range">
-    <button class="tool" data-act="undo">撤销</button>
-    <button class="tool" data-act="redo">重做</button>
-    <button class="tool" data-act="clear">清空</button>`;
-  tools.innerHTML = toolsHtml;
-
-  function pushUndo() {
-    state.undo.push(canvas.toDataURL());
-    if (state.undo.length > 30) state.undo.shift();
-    state.redo = [];
-  }
-
-  function restore(data) {
-    const img = new Image();
-    img.onload = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0); };
-    img.src = data;
-  }
-
-  function getPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    if (e.touches) {
-      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
-    }
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  }
-
-  function start(e) {
-    e.preventDefault();
-    state.drawing = true;
-    if (!state.eraser) state.hasStrokes = true;
-    pushUndo();
-    const p = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
-    ctx.strokeStyle = state.eraser ? '#ffffff' : state.color;
-    ctx.lineWidth = state.eraser ? state.size * 3 : state.size;
-  }
-  function move(e) {
-    if (!state.drawing) return;
-    e.preventDefault();
-    const p = getPos(e);
-    ctx.lineTo(p.x, p.y);
-    ctx.stroke();
-  }
-  function end() {
-    if (state.drawing) { state.drawing = false; autosave(); }
-  }
-
-  canvas.addEventListener('mousedown', start);
-  canvas.addEventListener('mousemove', move);
-  canvas.addEventListener('mouseup', end);
-  canvas.addEventListener('mouseleave', end);
-  canvas.addEventListener('touchstart', start, { passive: false });
-  canvas.addEventListener('touchmove', move, { passive: false });
-  canvas.addEventListener('touchend', end);
-
-  tools.addEventListener('click', (e) => {
-    const colorBtn = e.target.closest('.color');
-    const toolBtn = e.target.closest('.tool');
-    if (colorBtn) {
-      state.color = colorBtn.dataset.color;
-      state.eraser = false;
-      tools.querySelectorAll('.color').forEach(c => c.classList.toggle('active', c === colorBtn));
-      tools.querySelectorAll('.tool').forEach(t => t.classList.remove('active'));
-      return;
-    }
-    if (toolBtn) {
-      const act = toolBtn.dataset.act;
-      if (act === 'pen') { state.eraser = false; tools.querySelectorAll('.tool').forEach(t => t.classList.toggle('active', t.dataset.act === 'pen')); }
-      if (act === 'eraser') { state.eraser = true; tools.querySelectorAll('.tool').forEach(t => t.classList.toggle('active', t.dataset.act === 'eraser')); }
-      if (act === 'undo') { const d = state.undo.pop(); if (d) { state.redo.push(canvas.toDataURL()); restore(d); autosave(); } }
-      if (act === 'redo') { const d = state.redo.pop(); if (d) { state.undo.push(canvas.toDataURL()); restore(d); autosave(); } }
-      if (act === 'clear') {
-        if (confirm('确定清空白板吗？可先撤销恢复。')) {
-          pushUndo();
-          state.hasStrokes = false;
-          ctx.fillStyle = '#fff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          autosave();
-        }
-      }
-    }
-  });
-  tools.querySelector('#size-range').addEventListener('input', (e) => { state.size = parseInt(e.target.value, 10); });
-
-  boardRef = {
-    canvas, ctx,
-    getData: () => {
-      // 限制输出分辨率并转 JPEG，减少 IndexedDB 压力
-      const max = 1200;
-      const w = canvas.width, h = canvas.height;
-      let nw = w, nh = h;
-      if (w > max || h > max) {
-        const r = Math.min(max / w, max / h);
-        nw = Math.round(w * r); nh = Math.round(h * r);
-      }
-      const c = document.createElement('canvas');
-      c.width = nw; c.height = nh;
-      c.getContext('2d').drawImage(canvas, 0, 0, nw, nh);
-      return c.toDataURL('image/jpeg', 0.88);
-    },
-    isEmpty: () => !state.hasStrokes,
-    destroy: () => { window.removeEventListener('resize', resize); },
-    restore: (data) => {
-      if (data) {
-        state.hasStrokes = true;
-        const img = new Image();
-        img.onload = () => { ctx.drawImage(img, 0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1)); };
-        img.src = data;
-      }
-    }
-  };
+  boardRef = PondDrawing.mount(document.getElementById('board-canvas'), document.getElementById('board-tools'), autosave, message => toast(message, true));
 }
 
 /* ================= 语音输入（Web Speech API） ================= */
@@ -869,7 +720,7 @@ async function renderDetail(id) {
   const rec = await store.get(id);
   if (!rec) { toast('记录不存在'); return; }
   const el = document.getElementById('view-detail');
-  const modeLabel = { see: '始于看见', feel: '始于感受', meet: '始于相遇' }[rec.mode];
+  const modeLabel = { see: '始于看见', feel: '始于感受', meet: '我都想记录' }[rec.mode];
   const modeCls = { see: 'mode-see', feel: 'mode-feel', meet: 'mode-meet' }[rec.mode];
 
   let photosHtml = '';
@@ -1067,7 +918,7 @@ async function renderPondListView() {
       <button class="filter-chip ${pondFilter === 'all' ? 'active' : ''}" data-f="all">全部</button>
       <button class="filter-chip ${pondFilter === 'see' ? 'active' : ''}" data-f="see">始于看见</button>
       <button class="filter-chip ${pondFilter === 'feel' ? 'active' : ''}" data-f="feel">始于感受</button>
-      <button class="filter-chip ${pondFilter === 'meet' ? 'active' : ''}" data-f="meet">始于相遇</button>
+      <button class="filter-chip ${pondFilter === 'meet' ? 'active' : ''}" data-f="meet">我都想记录</button>
     </div>
     <div class="pond-toolbar">
       <input type="text" class="search-input" id="pond-search" placeholder="搜索标题或正文…" value="${esc(pondSearch)}" style="border:1px solid rgba(78,156,173,.3);border-radius:12px;padding:10px 14px;background:#fff;font-size:14px">
@@ -1125,7 +976,7 @@ async function renderPondCards() {
   }
 
   box.innerHTML = all.map(r => {
-    const modeLabel = { see: '始于看见', feel: '始于感受', meet: '始于相遇' }[r.mode];
+    const modeLabel = { see: '始于看见', feel: '始于感受', meet: '我都想记录' }[r.mode];
     const modeCls = { see: 'mode-see', feel: 'mode-feel', meet: 'mode-meet' }[r.mode];
     const thumb = (r.photos && r.photos.length) ? `<img src="${r.photos[0]}" alt="灵感照片" loading="lazy">`
       : (r.board && !r.boardEmpty ? `<img src="${r.board}" alt="灵感速写" loading="lazy">` : `<div class="noimg">${esc((r.what || r.feel || r.title).slice(0, 40)) || '（无文字）'}</div>`);
@@ -1239,7 +1090,7 @@ async function randomRecord() {
   const r = all[Math.floor(Math.random() * all.length)];
   const kind = elementFor(r, all, links);
   const kindName = { kopi: '金鱼', stone: '鹅卵石', weed: '水草', leaf: '漂浮叶片' }[kind];
-  const modeLabel = { see: '始于看见', feel: '始于感受', meet: '始于相遇' }[r.mode];
+  const modeLabel = { see: '始于看见', feel: '始于感受', meet: '我都想记录' }[r.mode];
 
   // 捞一捞动画浮层
   const overlay = document.createElement('div');
@@ -1329,10 +1180,10 @@ async function renderLink() {
   const el = document.getElementById('view-link');
   const recs = [];
   for (const id of linkRecords) { const r = await store.get(id); if (r) recs.push(r); }
-  const modeLabel = { see: '始于看见', feel: '始于感受', meet: '始于相遇' }[0] || '';
+  const modeLabel = { see: '始于看见', feel: '始于感受', meet: '我都想记录' }[0] || '';
   const list = recs.map(r => {
     const thumb = (r.photos && r.photos.length) ? `<img src="${r.photos[0]}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">` : '';
-    return `<div class="link-item" style="display:flex;gap:12px;align-items:center">${thumb}<div><strong>${esc(r.title)}</strong><div style="color:var(--sub);font-size:12px">${['始于看见','始于感受','始于相遇'][r.mode === 'see' ? 0 : r.mode === 'feel' ? 1 : 2]}</div></div></div>`;
+    return `<div class="link-item" style="display:flex;gap:12px;align-items:center">${thumb}<div><strong>${esc(r.title)}</strong><div style="color:var(--sub);font-size:12px">${['始于看见','始于感受','我都想记录'][r.mode === 'see' ? 0 : r.mode === 'feel' ? 1 : 2]}</div></div></div>`;
   }).join('');
 
   el.innerHTML = `

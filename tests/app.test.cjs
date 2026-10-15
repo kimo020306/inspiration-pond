@@ -16,7 +16,7 @@ function app(t) {
   const context = new Proxy({}, { get: (_, key) => key === 'measureText' ? text => ({ width: String(text).length * 10 }) : () => {}, set: () => true });
   win.HTMLCanvasElement.prototype.getContext = () => context;
   win.HTMLCanvasElement.prototype.toDataURL = () => 'data:image/jpeg;base64,YQ==';
-  for (const file of ['core.js', 'database.js', 'app.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), dom.getInternalVMContext(), { filename: file });
+  for (const file of ['core.js', 'database.js', 'drawing.js', 'app.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), dom.getInternalVMContext(), { filename: file });
   t.after(() => win.close());
   return { win, store: win.eval('store'), el: selector => win.document.querySelector(selector) };
 }

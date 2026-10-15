@@ -73,15 +73,6 @@ test('single-record linking and saving a new pair retain other relations', async
   await a.win.saveLinkRelations();
   assert.equal((await a.store.allLinks())['r2|r3'].note, '已有');
 });
-test('creation resumes by matching sources and does not carry content to another record', async t => {
-  const a = app(t);
-  await a.store.put(record('r1')); await a.store.put(record('r2'));
-  await a.store.saveCreate({ id: 'c1', sourceIds: ['r1'], theme: '已保存的作品', spread: {}, chain: [], reverse: [], converge: [] });
-  await a.win.openDeepen(['r1']);
-  assert.equal(a.el('#deepen-theme').value, '已保存的作品');
-  await a.win.openDeepen(['r2']);
-  assert.equal(a.el('#deepen-theme').value, 'r2');
-});
 test('deletion removes dangling references and backup remains valid', async t => {
   const a = app(t);
   await a.store.put(record('r1')); await a.store.put(record('r2'));
@@ -101,4 +92,35 @@ test('modal traps keyboard focus and restores trigger focus', async t => {
   assert.equal(a.win.document.activeElement.id, 'first');
   a.win.closeModal();
   assert.equal(a.win.document.activeElement, trigger);
+});
+
+async function waitFor(check) {
+  for(let i=0;i<200;i++){if(await check())return;await new Promise(r=>setTimeout(r,5));}
+  assert.fail('Expected UI or saved state did not arrive');
+}
+test('reopening a linked record includes its cross-mode partner',async t=>{
+  const a=app(t);await a.store.put(record('rSee','see'));await a.store.put(record('rFeel','feel'));
+  await a.store.saveLinks({'rFeel|rSee':{type:'一个触发另一个',note:'现场引起的心情'}});
+  await a.win.openLink('rSee');
+  assert.deepEqual([...a.win.eval('linkRecords')].sort(),['rFeel','rSee']);
+  assert.ok(a.el('[data-note]').value.includes('现场引起的心情'));
+});
+test('pond picker links all three modes without requiring shared keywords',async t=>{
+  const a=app(t);for(const [id,mode] of [['rSee','see'],['rFeel','feel'],['rMeet','meet']])await a.store.put(record(id,mode));
+  await a.win.openPond();a.el('#pond-link').click();
+  await waitFor(()=>a.el('[data-link-select]'));
+  assert.equal(a.win.document.querySelectorAll('[data-link-select]').length,3);
+  for(const input of a.win.document.querySelectorAll('[data-link-select]'))input.click();
+  assert.equal(a.el('#link-picker-done').disabled,false);a.el('#link-picker-done').click();
+  await waitFor(()=>a.win.document.querySelectorAll('[data-type]').length===15);
+  assert.equal(Object.keys(await a.store.allLinks()).length,3);
+  a.el('[data-pair="rFeel|rSee"][data-type="一个触发另一个"]').click();
+  await waitFor(async()=>!!(await a.store.allLinks())['rFeel|rSee']);
+  assert.equal((await a.store.allLinks())['rFeel|rSee'].type,'一个触发另一个');
+});
+test('record and linking pages offer collection and connection without creation routes',async t=>{
+  const a=app(t);await a.store.put(record('r1'));await a.store.put(record('r2','feel'));
+  await a.win.showDetail('r1');assert.equal(a.el('[data-act="deepen"]'),null);
+  await a.win.openLink(['r1','r2']);assert.equal(a.el('#link-goto-deepen'),null);
+  assert.equal(a.el('#view-deepen'),null);assert.ok(a.el('#link-done'));
 });

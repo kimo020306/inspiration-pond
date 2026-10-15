@@ -1,8 +1,8 @@
 {
   "name": "inspiration-pond",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
-  "description": "灵感池塘：本地优先的中文灵感记录与创作工具",
+  "description": "灵感池塘：本地优先的中文灵感收集与串联工具",
   "scripts": {
     "start": "node scripts/serve.cjs",
     "check": "node scripts/check.cjs",

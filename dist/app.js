@@ -477,7 +477,7 @@ async function autosaveNow() {
 
 /* ================= 导航 ================= */
 function show(view) {
-  ['home', 'form', 'pond', 'detail', 'link', 'deepen', 'saved'].forEach(v => {
+  ['home', 'form', 'pond', 'detail', 'link', 'saved'].forEach(v => {
     document.getElementById('view-' + v).style.display = 'none';
   });
   document.getElementById('view-' + view).style.display = 'block';
@@ -616,7 +616,6 @@ async function renderDetail(id) {
         <div class="detail-section"><h3>这些碎片，可能有关。</h3><div id="link-suggest"></div></div>
         <div class="detail-actions">
           <button class="btn btn-primary" data-act="link">串联记录</button>
-          <button class="btn btn-ghost" data-act="deepen">开始创作</button>
           <button class="btn btn-ghost" data-act="edit">编辑</button>
           <button class="btn btn-ghost" data-act="del" style="color:var(--coral)">删除</button>
         </div>
@@ -628,7 +627,6 @@ async function renderDetail(id) {
   renderLinkSuggest(rec);
 
   el.querySelector('[data-act="link"]').addEventListener('click', () => openLink(id));
-  el.querySelector('[data-act="deepen"]').addEventListener('click', () => openDeepen([id]));
   el.querySelector('[data-act="edit"]').addEventListener('click', () => openForm(rec.mode, id));
   el.querySelector('[data-act="del"]').addEventListener('click', () => deleteRecord(id));
   el.querySelector('[data-back="pond"]').addEventListener('click', (e) => { e.preventDefault(); openPond(); });
@@ -652,7 +650,6 @@ async function deleteRecord(id) {
     : '确定删除这条记录吗？删除后不可恢复。';
   if (!confirm(warn)) return;
   await store.deleteRecord(id);
-  if (deepenDraft?.sourceIds?.includes(id)) deepenDraft = null;
   toast('已删除');
   openPond();
 }
@@ -729,6 +726,7 @@ async function openPond() {
       <h2 class="pond-title">我的池塘</h2>
       <div class="btn-row" style="margin:0">
         <button class="btn btn-ghost" id="pond-new">＋ 新建记录</button>
+        <button class="btn btn-primary" id="pond-link">串联灵感</button>
         <button class="btn btn-ghost" id="pond-backup">备份</button>
       </div>
     </div>
@@ -749,6 +747,7 @@ async function openPond() {
   el.querySelector('#pond-random').addEventListener('click', randomRecord);
   el.querySelector('#pond-sort').addEventListener('click', () => { pondSort = pondSort === 'new' ? 'old' : 'new'; openPond(); });
   el.querySelector('#pond-new').addEventListener('click', () => { show('home'); });
+  el.querySelector('#pond-link').addEventListener('click', () => openLink([]));
   el.querySelector('#pond-backup').addEventListener('click', showBackupModal);
 
   if (pondView === 'pond') {
@@ -955,7 +954,6 @@ async function randomRecord() {
         <button class="btn btn-primary" id="scoop-view">看看它</button>
         <button class="btn btn-ghost" id="scoop-again">再捞一次</button>
         <button class="btn btn-ghost" id="scoop-relate">它和什么有关</button>
-        <button class="btn btn-ghost" id="scoop-deepen">从它继续想</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -963,7 +961,6 @@ async function randomRecord() {
   overlay.querySelector('#scoop-view').addEventListener('click', () => { overlay.remove(); showDetail(r.id); });
   overlay.querySelector('#scoop-again').addEventListener('click', () => { overlay.remove(); randomRecord(); });
   overlay.querySelector('#scoop-relate').addEventListener('click', () => { overlay.remove(); openLink([r.id]); });
-  overlay.querySelector('#scoop-deepen').addEventListener('click', () => { overlay.remove(); openDeepen([r.id]); });
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 }
 
@@ -1015,20 +1012,28 @@ async function importBackup(file) {
 /* ================= 串联 ================= */
 let linkRecords = [];  // 待串联的记录 id 列表
 let linkRelations = {}; // { pairKey: {type, note} }
+let linkSaveQueue = Promise.resolve();
 
 async function openLink(ids) {
+  await linkSaveQueue.catch(() => {});
   linkRecords = PondCore.ids(ids);
   linkRelations = await store.allLinks();
-  const el = document.getElementById('view-link');
+  if (linkRecords.length === 1) {
+    const source = linkRecords[0];
+    const partners = Object.keys(linkRelations).filter(key => key.split('|').includes(source)).flatMap(key => key.split('|'));
+    linkRecords = PondCore.ids([...linkRecords, ...partners]);
+  }
+  const existing = new Set((await store.all()).map(rec => rec.id));
+  linkRecords = linkRecords.filter(id => existing.has(id));
   await renderLink();
   show('link');
+  if (linkRecords.length < 2) await showAddMoreModal();
 }
 
 async function renderLink() {
   const el = document.getElementById('view-link');
   const recs = [];
   for (const id of linkRecords) { const r = await store.get(id); if (r) recs.push(r); }
-  const modeLabel = { see: '始于看见', feel: '始于感受', meet: '我都想记录' }[0] || '';
   const list = recs.map(r => {
     const thumb = (r.photos && r.photos.length) ? `<img src="${r.photos[0]}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">` : '';
     return `<div class="link-item" style="display:flex;gap:12px;align-items:center">${thumb}<div><strong>${esc(r.title)}</strong><div style="color:var(--sub);font-size:12px">${['始于看见','始于感受','我都想记录'][r.mode === 'see' ? 0 : r.mode === 'feel' ? 1 : 2]}</div></div></div>`;
@@ -1039,18 +1044,22 @@ async function renderLink() {
       <a class="back" href="#" data-back="pond">← 返回</a>
       <div class="detail-card glass">
         <h2 style="margin:0 0 6px">灵感串联</h2>
-        <p style="color:var(--sub);font-size:13px">选择这些碎片之间的关系。</p>
+        <p style="color:var(--sub);font-size:13px">看见、感受和一起记录的灵感，都可以串联。为每对碎片选择一种关系。</p>
         ${list}
         <div id="link-relations" style="margin-top:16px"></div>
         <div class="detail-actions" style="margin-top:16px">
           <button class="btn btn-ghost" id="link-add-more">添加更多记录</button>
-          <button class="btn btn-primary" id="link-goto-deepen">去创作深化 →</button>
+          <button class="btn btn-primary" id="link-done">保存并回到池塘</button>
         </div>
+        <p id="link-save-status" role="status" aria-live="polite" style="font-size:12px;color:var(--sub)"></p>
       </div>
     </div>`;
   el.querySelector('[data-back="pond"]').addEventListener('click', (e) => { e.preventDefault(); openPond(); });
   el.querySelector('#link-add-more').addEventListener('click', showAddMoreModal);
-  el.querySelector('#link-goto-deepen').addEventListener('click', () => openDeepen(linkRecords));
+  el.querySelector('#link-done').addEventListener('click', async () => {
+    try { await saveLinkRelations(); toast('串联关系已保存'); await openPond(); }
+    catch (error) { toast('保存失败，请重试：' + error.message, true); }
+  });
 
   renderLinkRelations(recs);
 }
@@ -1072,7 +1081,7 @@ function renderLinkRelations(recs) {
     const key = [a.id, b.id].sort().join('|');
     const rel = linkRelations[key] || {};
     return `<div class="link-item">
-      <div style="font-size:13px;color:var(--sub)">${esc(a.title)} ↔ ${esc(b.title)}</div>
+      <div style="font-size:13px;color:var(--sub)">${esc(a.title)} ↔ ${esc(b.title)} · ${linkRelations[key] ? '已串联' : '未设置关系'}</div>
       <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
         ${relTypes.map(t => `<button class="filter-chip ${rel.type === t ? 'active' : ''}" data-pair="${key}" data-type="${t}">${t}</button>`).join('')}
       </div>
@@ -1088,588 +1097,66 @@ function renderLinkRelations(recs) {
       const key = b.dataset.pair;
       if (!linkRelations[key]) linkRelations[key] = {};
       linkRelations[key].type = b.dataset.type;
-      saveLinkRelations();
+      saveLinkRelations().catch(() => {});
       renderLinkRelations(recs);
     });
   });
   box.querySelectorAll('[data-note]').forEach(i => {
     i.addEventListener('input', (e) => {
       const key = e.target.dataset.note;
-      if (!linkRelations[key]) linkRelations[key] = {};
+      if (!linkRelations[key]) linkRelations[key] = { type: '暂时说不清，但感觉有关' };
       linkRelations[key].note = e.target.value;
-      saveLinkRelations();
+      saveLinkRelations().catch(() => {});
     });
   });
   box.querySelectorAll('[data-remove]').forEach(b => {
     b.addEventListener('click', () => {
       delete linkRelations[b.dataset.remove];
-      saveLinkRelations();
+      saveLinkRelations().catch(() => {});
       renderLinkRelations(recs);
     });
   });
 }
 
 async function saveLinkRelations() {
-  // 保存到 IndexedDB links store（简化：存为 records 的特殊类型）
-  await store.saveLinks(linkRelations);
+  const snapshot = JSON.parse(JSON.stringify(linkRelations));
+  const status = document.getElementById('link-save-status');
+  if (status) status.textContent = '正在保存…';
+  linkSaveQueue = linkSaveQueue.catch(() => {}).then(() => store.saveLinks(snapshot));
+  try { await linkSaveQueue; if (status) status.textContent = '串联关系已保存'; }
+  catch (error) { if (status) status.textContent = '保存失败，请点击“保存并回到池塘”重试'; throw error; }
 }
 
 async function showAddMoreModal() {
   const all = await store.all();
-  const others = all.filter(r => !linkRecords.includes(r.id));
-  const html = `<h3>添加记录到串联</h3>` + others.map(r => `<button class="opt" data-add="${r.id}">${esc(r.title)}</button>`).join('') + `<button class="opt" id="am-done" style="background:var(--deep);color:#fff">完成</button>`;
+  const selected = new Set(linkRecords);
+  const labels = { see: '始于看见', feel: '始于感受', meet: '我都想记录' };
+  const html = `<h3>选择要串联的灵感</h3><p class="link-picker-hint">三种记录都在这里，可跨类型选择至少 2 条。</p>` +
+    (all.length ? all.map(r => `<label class="link-picker-row"><input type="checkbox" data-link-select="${r.id}" ${selected.has(r.id) ? 'checked' : ''}><span><strong>${esc(r.title)}</strong><small>${labels[r.mode]}</small></span></label>`).join('') : '<p>先留下两条灵感，就可以把它们串在一起。</p>') +
+    `<p id="link-picker-count" role="status"></p><div class="btn-row"><button class="btn btn-ghost" id="link-picker-cancel">取消</button><button class="btn btn-primary" id="link-picker-done">开始串联</button></div>`;
   showModal(html);
-  document.querySelectorAll('[data-add]').forEach(b => {
-    b.addEventListener('click', () => {
-      linkRecords.push(b.dataset.add);
-      linkRecords = Array.from(new Set(linkRecords));
-      closeModal();
-      renderLink();
-    });
-  });
-  document.getElementById('am-done').addEventListener('click', closeModal);
-}
-
-/* ================= 深化 ================= */
-let deepenIds = [];
-let deepenDraft = null;  // { id, spread, chain, reverse, converge, done }
-
-async function openDeepen(ids) {
-  deepenIds = PondCore.ids(ids);
-  const recs = [];
-  for (const id of deepenIds) { const r = await store.get(id); if (r) recs.push(r); }
-  const baseTheme = recs.map(r => r.title).join(' · ').slice(0, 60) || '我的创作';
-  if (!deepenDraft || !PondCore.sameIds(deepenDraft.sourceIds, deepenIds)) {
-    const saved = await store.allCreates();
-    deepenDraft = saved.find(draft => PondCore.sameIds(draft.sourceIds, deepenIds)) || { id: 'c' + Date.now(), theme: baseTheme, spread: {}, chain: [], reverse: [], converge: [], finalDir: '', status: '酝酿中', sourceIds: deepenIds };
+  function update() {
+    document.getElementById('link-picker-count').textContent = `已选 ${selected.size} 条`;
+    document.getElementById('link-picker-done').disabled = selected.size < 2;
   }
-  deepenDraft.sourceIds = deepenIds;
-  renderDeepen();
-  show('deepen');
-}
-
-function renderDeepen() {
-  const d = deepenDraft;
-  const el = document.getElementById('view-deepen');
-
-  // 扩散法
-  const dims = ['形态', '氛围', '空间', '行为', '意义'];
-  const spreadHtml = dims.map(dim => {
-    const items = d.spread[dim] || [];
-    return `<div class="dim-row">
-      <div class="dim-label">${dim}</div>
-      <div class="dim-items">
-        ${items.map((it, i) => `<span class="chip">${esc(it)} <a href="#" data-del-spread="${dim}|${i}" style="color:var(--coral);text-decoration:none">×</a></span>`).join('')}
-        <input type="text" placeholder="添加联想…" data-add-spread="${dim}" style="border:none;border-bottom:1px dashed rgba(78,156,173,.4);background:transparent;padding:4px;font-size:13px;width:120px">
-      </div>
-    </div>`;
-  }).join('');
-
-  // 接龙法
-  const chainHtml = (d.chain || []).map((node, i) => {
-    return `<div class="chain-node">
-      <input type="text" value="${esc(node)}" data-chain="${i}" style="flex:1;border:1px solid rgba(78,156,173,.3);border-radius:10px;padding:8px 12px;font-size:14px">
-      ${i < (d.chain || []).length - 1 ? '<span class="arrow2">→</span>' : ''}
-      <a href="#" data-del-chain="${i}" style="color:var(--coral);text-decoration:none">×</a>
-    </div>`;
-  }).join('') + `<button class="btn btn-sec" id="chain-add">＋ 添加节点</button>`;
-
-  // 逆向思维
-  const reverseQs = ['如果它完全相反呢？', '如果结果先发生呢？', '如果缺席的东西成为主体呢？', '如果从物而不是人的视角观看呢？'];
-  const reverseHtml = reverseQs.map((q, i) => {
-    const val = d.reverse[i] || '';
-    return `<div class="field-gap"><label class="field">${q}</label><textarea data-reverse="${i}" placeholder="记录反向方案…">${esc(val)}</textarea></div>`;
-  }).join('');
-
-  // 收敛思维
-  const criteria = ['相关性', '独特性', '可视觉化', '延展性', '落地性'];
-  const convergeHtml = criteria.map((c, ci) => {
-    const score = d.converge[ci] || 0;
-    let dots = '';
-    for (let s = 1; s <= 5; s++) dots += `<button type="button" class="dot ${s <= score ? 'on' : ''}" aria-label="${c} ${s} 分" aria-pressed="${s === score}" data-converge="${ci}|${s}">${s}</button>`;
-    return `<div class="score-row"><div class="criteria">${c}</div><div class="score-dots">${dots}</div></div>`;
-  }).join('');
-
-  el.innerHTML = `
-    <div class="detail-wrap">
-      <a class="back" href="#" data-back="detail">← 返回</a>
-      <div class="detail-card glass">
-        <h2 style="margin:0 0 4px">创作深化</h2>
-        <div class="field-gap" style="margin-top:14px">
-          <label class="field">创作主题</label>
-          <input type="text" id="deepen-theme" value="${esc(d.theme)}">
-        </div>
-
-        <div class="deepen-block">
-          <h3>① 扩散法 · 主题 → 联想维度 → 可创作元素</h3>
-          ${spreadHtml}
-        </div>
-
-        <div class="deepen-block">
-          <h3>② 接龙法 · 原始主题 → 联想 → 视觉语言 → 创作形式</h3>
-          <p style="color:var(--sub);font-size:12px">示例：解压 → 回弹 → 软绵绵 → 圆润透明 → 果冻</p>
-          <div id="chain-list">${chainHtml}</div>
-        </div>
-
-        <div class="deepen-block">
-          <h3>③ 逆向思维</h3>
-          ${reverseHtml}
-        </div>
-
-        <div class="deepen-block">
-          <h3>④ 收敛思维 · 按 1—5 分评估</h3>
-          ${convergeHtml}
-        </div>
-
-        <div class="detail-actions">
-          <button class="btn btn-primary" id="deepen-save">保存草稿</button>
-          <button class="btn btn-ghost" id="deepen-card">生成创作起点卡</button>
-        </div>
-      </div>
-    </div>`;
-  show('deepen');
-
-  el.querySelector('[data-back="detail"]').addEventListener('click', (e) => {
-    e.preventDefault();
-    if (deepenIds.length === 1) showDetail(deepenIds[0]); else openPond();
+  document.querySelectorAll('[data-link-select]').forEach(input => {
+    input.addEventListener('change', () => { if (input.checked) selected.add(input.dataset.linkSelect); else selected.delete(input.dataset.linkSelect); update(); });
   });
-  el.querySelector('#deepen-theme').addEventListener('input', (e) => { d.theme = e.target.value; });
-  el.querySelector('#chain-add').addEventListener('click', () => { d.chain.push(''); renderDeepen(); });
-  el.querySelector('#deepen-save').addEventListener('click', saveDeepen);
-  el.querySelector('#deepen-card').addEventListener('click', generateCard);
-
-  // 扩散添加
-  el.querySelectorAll('[data-add-spread]').forEach(i => {
-    i.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && e.target.value.trim()) {
-        const dim = e.target.dataset.addSpread;
-        if (!d.spread[dim]) d.spread[dim] = [];
-        d.spread[dim].push(e.target.value.trim());
-        e.target.value = '';
-        renderDeepen();
+  document.getElementById('link-picker-cancel').addEventListener('click', closeModal);
+  document.getElementById('link-picker-done').addEventListener('click', async () => {
+    if (selected.size < 2) return;
+    linkRecords = [...selected];
+    for (let i = 0; i < linkRecords.length; i++) {
+      for (let j = i + 1; j < linkRecords.length; j++) {
+        const key = [linkRecords[i], linkRecords[j]].sort().join('|');
+        if (!linkRelations[key]) linkRelations[key] = { type: '暂时说不清，但感觉有关' };
       }
-    });
+    }
+    closeModal();
+    try { await saveLinkRelations(); await renderLink(); toast('灵感已串联，可以继续补充关系'); }
+    catch (error) { await renderLink(); toast('关系尚未保存，请重试：' + error.message, true); }
   });
-  el.querySelectorAll('[data-del-spread]').forEach(a => {
-    a.addEventListener('click', (e) => {
-      e.preventDefault();
-      const [dim, idx] = a.dataset.delSpread.split('|');
-      d.spread[dim].splice(parseInt(idx), 1);
-      renderDeepen();
-    });
-  });
-  // 接龙编辑/删除
-  el.querySelectorAll('[data-chain]').forEach(i => {
-    i.addEventListener('input', (e) => { d.chain[parseInt(e.target.dataset.chain)] = e.target.value; });
-  });
-  el.querySelectorAll('[data-del-chain]').forEach(a => {
-    a.addEventListener('click', (e) => {
-      e.preventDefault();
-      d.chain.splice(parseInt(a.dataset.delChain), 1);
-      renderDeepen();
-    });
-  });
-  // 逆向
-  el.querySelectorAll('[data-reverse]').forEach(i => {
-    i.addEventListener('input', (e) => { d.reverse[parseInt(e.target.dataset.reverse)] = e.target.value; });
-  });
-  // 收敛
-  el.querySelectorAll('[data-converge]').forEach(dot => {
-    dot.addEventListener('click', () => {
-      const [ci, s] = dot.dataset.converge.split('|').map(Number);
-      d.converge[ci] = s;
-      renderDeepen();
-    });
-  });
-}
-
-async function saveDeepen() {
-  // 从输入框收集最新值
-  const themeEl = document.getElementById('deepen-theme');
-  if (themeEl) deepenDraft.theme = themeEl.value;
-  // reverse 收集
-  document.querySelectorAll('[data-reverse]').forEach(i => { deepenDraft.reverse[parseInt(i.dataset.reverse)] = i.value; });
-  await store.saveCreate(deepenDraft);
-  toast('创作草稿已保存');
-}
-
-async function generateCard() {
-  await saveDeepen();
-  renderCard();
-}
-
-/* ================= 起点卡 ================= */
-function renderCard() {
-  const d = deepenDraft;
-  // 计算视觉母题/色彩材质/场景行为 从 spread
-  const spread = d.spread;
-  const motif = (spread['形态'] || []).join('、') || '';
-  const colorMat = ((spread['氛围'] || [])).join('、') || '';
-  const sceneAct = ((spread['空间'] || []).concat(spread['行为'] || [])).join('、') || '';
-  const meaning = (spread['意义'] || []).join('、') || '';
-  const chain = (d.chain || []).join(' → ');
-
-  // 候选方向（逆向 + 链末端 + 收敛高分维度）
-  const candidates = [];
-  (d.reverse || []).filter(Boolean).forEach(r => candidates.push({ t: '逆向', v: r }));
-  if (chain) candidates.push({ t: '接龙', v: chain });
-  const maxScoreIdx = (d.converge || []).indexOf(Math.max(...(d.converge || [0])));
-  if (maxScoreIdx >= 0 && (d.converge[maxScoreIdx] || 0) >= 3) {
-    const criteria = ['相关性', '独特性', '可视觉化', '延展性', '落地性'];
-    candidates.push({ t: '收敛优势', v: criteria[maxScoreIdx] });
-  }
-
-  const el = document.getElementById('view-deepen');
-  el.innerHTML = `
-    <div class="detail-wrap">
-      <a class="back" href="#" id="card-back">← 返回深化</a>
-      <div class="card-export" id="card-export">
-        <h2>${esc(d.theme || '未命名创作')}</h2>
-        <div class="ce-sub">创作起点卡 · 状态：${esc(d.status || '酝酿中')}</div>
-        <div class="ce-row"><div class="ce-label">原始记录引用</div><div class="ce-val">${esc((d.sourceIds || []).length)} 条灵感</div></div>
-        <div class="ce-row"><div class="ce-label">核心感受（选填）</div><div class="ce-val">${esc(meaning)}</div></div>
-        <div class="ce-row"><div class="ce-label">视觉母题</div><div class="ce-val">${esc(motif)}</div></div>
-        <div class="ce-row"><div class="ce-label">色彩与材质</div><div class="ce-val">${esc(colorMat)}</div></div>
-        <div class="ce-row"><div class="ce-label">场景与行为</div><div class="ce-val">${esc(sceneAct)}</div></div>
-        <div class="ce-row"><div class="ce-label">创作媒介</div><div class="ce-val" id="card-medium"></div></div>
-        <div class="ce-row"><div class="ce-label">候选方向（最多三个）</div><div class="ce-val">${candidates.slice(0, 3).map((c, i) => `${i + 1}. [${c.t}] ${esc(c.v)}`).join('<br>')}</div></div>
-        <div class="ce-action"><div class="ce-label">一个可以立即执行的小行动</div><div class="ce-val" id="card-action"></div></div>
-      </div>
-      <div class="detail-actions" style="margin-top:16px;justify-content:center">
-        <button class="btn btn-primary" id="card-export-btn">导出图片</button>
-        <button class="btn btn-ghost" id="card-edit">继续编辑</button>
-        <button class="btn btn-ghost" id="card-status">标记状态</button>
-      </div>
-    </div>`;
-  show('deepen');
-
-  document.getElementById('card-back').addEventListener('click', (e) => { e.preventDefault(); renderDeepen(); });
-  document.getElementById('card-action').textContent = deriveAction(candidates);
-  document.getElementById('card-medium').textContent = d.chain?.filter(Boolean).at(-1) || '尚未确定，可回到深化页补充接龙';
-  document.getElementById('card-export-btn').addEventListener('click', exportCardImage);
-  document.getElementById('card-edit').addEventListener('click', () => renderDeepen());
-  document.getElementById('card-status').addEventListener('click', () => {
-    const statuses = ['酝酿中', '正在创作', '已完成'];
-    const cur = statuses.indexOf(d.status || '酝酿中');
-    d.status = statuses[(cur + 1) % statuses.length];
-    saveDeepen();
-    renderCard();
-  });
-}
-
-/* ================= 起点卡导出（Canvas 自绘） ================= */
-// 颜色常量与设计 token 同步 CSS 变量
-const CARD_TOKEN = {
-  ink: '#173B47',
-  sub: '#5F7E87',
-  deep: '#357F91',
-  lake: '#4E9CAD',
-  koi: '#F47A4D',
-  coral: '#E5523A',
-  amber: '#F5B942',
-  apricot: '#FFD9B8',
-  cream: '#FFF0C7',
-  pale: '#D8EEF2',
-  bg: '#FFFFFF',
-  card: '#FBFEFF',
-  line: 'rgba(78,156,173,.22)'
-};
-
-/* 文字按宽度自动换行（中文按字符计算宽度） */
-function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
-  if (!text) return 0;
-  const str = String(text);
-  const lines = [];
-  let line = '';
-  for (let i = 0; i < str.length; i++) {
-    const ch = str[i];
-    const test = line + ch;
-    // 估算宽度：英文按字符宽一些，中文等宽
-    const w = ctx.measureText(test).width;
-    if (w > maxWidth && line) { lines.push(line); line = ch; }
-    else line = test;
-    // 遇到显式换行也立即断行
-    if (ch === '\n') { lines.push(line.slice(0, -1)); line = ''; }
-  }
-  if (line) lines.push(line);
-  lines.forEach((ln, idx) => ctx.fillText(ln, x, y + idx * lineHeight));
-  return lines.length * lineHeight;
-}
-
-/* 圆角矩形路径 */
-function roundRect(ctx, x, y, w, h, r) {
-  const rr = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + rr, y);
-  ctx.arcTo(x + w, y, x + w, y + h, rr);
-  ctx.arcTo(x + w, y + h, x, y + h, rr);
-  ctx.arcTo(x, y + h, x, y, rr);
-  ctx.arcTo(x, y, x + w, y, rr);
-  ctx.closePath();
-}
-
-/* 根据主题色生成状态条 */
-function statusPalette(status) {
-  if (status === '正在创作') return { bg: '#FFE9D9', fg: '#8a4a1e', dot: CARD_TOKEN.koi };
-  if (status === '已完成')   return { bg: '#D8EEF2', fg: CARD_TOKEN.deep, dot: CARD_TOKEN.deep };
-  return { bg: CARD_TOKEN.cream, fg: '#8a6a20', dot: CARD_TOKEN.amber }; // 酝酿中
-}
-
-/* 把字段卡片绘制到 ctx 上，自适应高度，返回绘制终点 y */
-function drawFieldCard(ctx, x, y, w, label, value, fontSize = 16, lineHeight = 26) {
-  const padX = 18, padY = 14, labelH = 14, labelGap = 8;
-  // 测量行数
-  ctx.font = `${fontSize}px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif`;
-  const lines = wrapText(ctx, value || '—', w - padX * 2, fontSize, lineHeight);
-  const valueH = lines * lineHeight;
-  const blockH = padY + labelH + labelGap + Math.max(valueH, lineHeight) + padY - 6;
-  // 背景
-  ctx.fillStyle = CARD_TOKEN.card;
-  roundRect(ctx, x, y, w, blockH, 14); ctx.fill();
-  // label baseline
-  ctx.font = '600 12px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillStyle = CARD_TOKEN.deep;
-  ctx.fillText(label, x + padX, y + padY + labelH - 2);
-  // value 基线：第一行
-  ctx.font = `${fontSize}px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif`;
-  ctx.fillStyle = CARD_TOKEN.ink;
-  const valY = y + padY + labelH + labelGap + lineHeight;
-  drawWrappedText(ctx, value || '—', x + padX, valY, w - padX * 2, lineHeight);
-  return blockH;
-}
-
-/* 仅测量高度（保持与 drawFieldCard 一致） */
-function measureFieldHeight(ctx, w, value, fontSize = 16, lineHeight = 26) {
-  const padX = 18, padY = 14, labelH = 14, labelGap = 8;
-  ctx.font = `${fontSize}px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif`;
-  const lines = wrapText(ctx, value || '—', w - padX * 2, fontSize, lineHeight);
-  const valueH = lines * lineHeight;
-  return padY + labelH + labelGap + Math.max(valueH, lineHeight) + padY - 6;
-}
-
-async function exportCardImage() {
-  const d = deepenDraft;
-  // 准备展示数据
-  const spread = d.spread || {};
-  const motif   = (spread['形态'] || []).join('、');
-  const colorMat= (spread['氛围'] || []).join('、');
-  const sceneAct= ((spread['空间'] || []).concat(spread['行为'] || [])).join('、');
-  const meaning = (spread['意义'] || []).join('、');
-  const chain   = (d.chain || []).filter(Boolean).join(' → ');
-  const candidates = [];
-  (d.reverse || []).filter(Boolean).forEach(r => candidates.push({ t: '逆向', v: r }));
-  if (chain) candidates.push({ t: '接龙', v: chain });
-  const maxScoreIdx = (d.converge || []).indexOf(Math.max(...(d.converge || [0])));
-  if (maxScoreIdx >= 0 && (d.converge[maxScoreIdx] || 0) >= 3) {
-    const criteria = ['相关性', '独特性', '可视觉化', '延展性', '落地性'];
-    candidates.push({ t: '收敛优势', v: criteria[maxScoreIdx] });
-  }
-  candidates.slice(0, 3).forEach((c, i) => { c.idx = i + 1; });
-  const action = deriveAction(candidates);
-  const dateStr = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
-  const sourceCount = (d.sourceIds || []).length;
-  const palette = statusPalette(d.status || '酝酿中');
-
-  // 布局参数
-  const W = 640;
-  const padOuter = 28;
-  const innerX = padOuter;
-  const innerW = W - padOuter * 2;
-  const dpr = Math.max(2, window.devicePixelRatio || 1);
-
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  // 先以 1x 计算高度
-  ctx.font = '16px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-
-  // 预计算各字段绘制高度
-  let total = 86 + 22 + 36 + 18 + 16; // 顶部品牌栏 + 主题块 + 分隔
-  const fields = [
-    { l: '视觉母题', v: motif },
-    { l: '色彩与材质', v: colorMat },
-    { l: '场景与行为', v: sceneAct },
-    { l: '意义', v: meaning }
-  ];
-  const fieldFontSize = 15, fieldLineH = 24, fieldGap = 12;
-  const fieldHeights = fields.map(f => measureFieldHeight(ctx, innerW, f.v, fieldFontSize, fieldLineH));
-  total += fieldHeights.reduce((a, b) => a + b + fieldGap, 0) - fieldGap;
-  // 候选方向
-  total += 28 + (candidates.length || 1) * 32 + 12;
-  // 行动
-  total += 88 + 32;
-  // 底栏
-  total += 32 + 28;
-
-  // Account for wrapped text in long themes, candidate directions and actions.
-  const extraTheme = Math.max(0, wrapText(ctx, d.theme || '未命名创作', innerW, 30, 36) - 1) * 36;
-  const extraCandidates = candidates.reduce((sum, c) => sum + Math.max(0, wrapText(ctx, c.v, innerW - 150, 15, 22) - 1) * 22, 0);
-  const extraAction = Math.max(0, wrapText(ctx, action, innerW - 36, 15, 22) - 1) * 22;
-  const H = total + extraTheme + extraCandidates + extraAction + 24;
-  canvas.width = W * dpr; canvas.height = H * dpr;
-  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-  ctx.scale(dpr, dpr);
-
-  // 背景
-  ctx.fillStyle = CARD_TOKEN.bg;
-  ctx.fillRect(0, 0, W, H);
-
-  // 顶部品牌栏
-  ctx.fillStyle = CARD_TOKEN.pale;
-  roundRect(ctx, 0, 0, W, 72, 0);
-  ctx.fill();
-  // logo 圆点
-  ctx.fillStyle = CARD_TOKEN.koi;
-  ctx.beginPath();
-  ctx.arc(36, 36, 12, 0, Math.PI * 2);
-  ctx.fill();
-  // 文字
-  ctx.fillStyle = CARD_TOKEN.ink;
-  ctx.font = '700 18px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText('灵感池塘 · 创作起点卡', 60, 32);
-  ctx.font = '13px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillStyle = CARD_TOKEN.sub;
-  ctx.fillText('把碎片先留下来，方向让它自己长出来。', 60, 54);
-  // 日期
-  ctx.font = '12px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillStyle = CARD_TOKEN.sub;
-  const dtxt = dateStr;
-  ctx.fillText(dtxt, W - padOuter - ctx.measureText(dtxt).width, 40);
-
-  // 状态徽章
-  const badgeText = d.status || '酝酿中';
-  ctx.font = '600 12px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  const bw = ctx.measureText(badgeText).width + 24;
-  const bx = W - padOuter - bw, by = 56;
-  ctx.fillStyle = palette.bg;
-  roundRect(ctx, bx, by, bw, 18, 9); ctx.fill();
-  ctx.fillStyle = palette.fg;
-  ctx.beginPath();
-  ctx.arc(bx + 10, by + 9, 3, 0, Math.PI * 2); ctx.fill();
-  ctx.fillText(badgeText, bx + 18, by + 13);
-
-  // 主题块
-  let cy = 88;
-  ctx.font = '600 12px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillStyle = CARD_TOKEN.sub;
-  ctx.fillText('创作主题 · ' + sourceCount + ' 条灵感', innerX, cy + 12);
-  cy += 22;
-  ctx.font = '800 30px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillStyle = CARD_TOKEN.ink;
-  const themeText = d.theme || '未命名创作';
-  const themeH = drawWrappedText(ctx, themeText, innerX, cy + 22, innerW, 36);
-  cy += themeH + 12;
-
-  // 分隔线
-  ctx.strokeStyle = CARD_TOKEN.line;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(innerX, cy + 4); ctx.lineTo(innerX + innerW, cy + 4);
-  ctx.stroke();
-  cy += 16;
-
-  // 字段卡
-  fields.forEach((f, i) => {
-    const blockH = drawFieldCard(ctx, innerX, cy, innerW, f.l, f.v, fieldFontSize, fieldLineH);
-    cy += blockH + 12;
-  });
-
-  // 候选方向
-  ctx.font = '600 13px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillStyle = CARD_TOKEN.deep;
-  ctx.fillText('候选方向', innerX, cy + 14);
-  cy += 28;
-  if (!candidates.length) {
-    ctx.font = '14px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-    ctx.fillStyle = CARD_TOKEN.sub;
-    ctx.fillText('暂未生成方向，可回到深化页补充灵感。', innerX, cy + 18);
-    cy += 32;
-  } else {
-    candidates.forEach(c => {
-      // 序号圆
-      ctx.fillStyle = CARD_TOKEN.apricot;
-      ctx.beginPath();
-      ctx.arc(innerX + 12, cy + 16, 12, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#8a4a1e';
-      ctx.font = '700 12px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-      ctx.fillText(String(c.idx), innerX + 8, cy + 20);
-      // 类型标签
-      const tag = '[' + c.t + ']';
-      ctx.font = '600 12px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-      const tagW = ctx.measureText(tag).width;
-      const tagX = innerX + 32, tagY = cy + 8;
-      ctx.fillStyle = CARD_TOKEN.pale;
-      roundRect(ctx, tagX, tagY, tagW + 16, 18, 9); ctx.fill();
-      ctx.fillStyle = CARD_TOKEN.deep;
-      ctx.fillText(tag, tagX + 8, tagY + 13);
-      // 内容
-      ctx.font = '15px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-      ctx.fillStyle = CARD_TOKEN.ink;
-      const valX = tagX + tagW + 24;
-      const valW = innerW - (valX - innerX) - 8;
-      const used = drawWrappedText(ctx, c.v, valX, cy + 20, valW, 22);
-      cy += Math.max(28, used + 6);
-    });
-    cy += 4;
-  }
-
-  // 行动建议
-  const actionY = cy + 4;
-  const actionH = Math.max(76, wrapText(ctx, action, innerW - 36, 15, 22) * 22 + 44);
-  ctx.fillStyle = CARD_TOKEN.cream;
-  roundRect(ctx, innerX, actionY, innerW, actionH, 14); ctx.fill();
-  // 左侧色条
-  ctx.fillStyle = CARD_TOKEN.koi;
-  ctx.fillRect(innerX, actionY + 8, 4, actionH - 16);
-  ctx.font = '700 12px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillStyle = '#8a6a20';
-  ctx.fillText('一个可以立即执行的小行动', innerX + 18, actionY + 22);
-  ctx.font = '15px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillStyle = CARD_TOKEN.ink;
-  const aH = drawWrappedText(ctx, action, innerX + 18, actionY + 44, innerW - 36, 22);
-  cy = actionY + Math.max(actionH, aH + 28) + 16;
-
-  // 底栏
-  ctx.fillStyle = CARD_TOKEN.pale;
-  ctx.fillRect(0, H - 36, W, 36);
-  ctx.font = '12px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillStyle = CARD_TOKEN.sub;
-  ctx.fillText('灵感池塘 · 让碎片慢慢相遇', innerX, H - 14);
-  const tip = '由灵感池塘自动生成';
-  ctx.fillText(tip, W - padOuter - ctx.measureText(tip).width, H - 14);
-
-  // 触发下载
-  try {
-    const url = canvas.toDataURL('image/png');
-    downloadURL(url, '创作起点卡-' + (themeText || '未命名').slice(0, 10) + '.png');
-    toast('图片已导出');
-  } catch (e) {
-    toast('导出失败：' + e.message, true);
-  }
-}
-
-/* 工具：按宽度换行（按字符测量，返回行数） */
-function wrapText(ctx, text, maxWidth, fontSize, lineHeight) {
-  ctx.font = `${fontSize}px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif`;
-  if (!text) return 1;
-  const lines = [];
-  let line = '';
-  for (let i = 0; i < text.length; i++) {
-    const test = line + text[i];
-    if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = text[i]; }
-    else line = test;
-  }
-  if (line) lines.push(line);
-  return lines.length || 1;
-}
-
-/* 根据候选方向自动生成一条最小行动建议 */
-function deriveAction(candidates) {
-  if (!candidates.length) return '回到池塘页重新选 2-3 条碎片，再走一遍扩散 → 接龙 → 收敛。';
-  const c = candidates[0];
-  if (c.t === '逆向') return '用 30 分钟把「' + c.v.slice(0, 30) + '」反着演一遍，画 4 张草稿对比。';
-  if (c.t === '接龙') return '把接龙的最后一环「' + (c.v.split('→').pop() || '').trim().slice(0, 30) + '」找 3 个真实参考。';
-  if (c.t === '收敛优势') return '用今天 1 小时，以「' + c.v + '」为唯一标准重新审视这批素材。';
-  return '挑出 1 个最打动你的方向，今晚写 5 行创作草案。';
+  update();
 }
 
 function downloadURL(url, name) {

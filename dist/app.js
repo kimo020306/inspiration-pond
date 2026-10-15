@@ -134,29 +134,21 @@ function renderFormBody(mode) {
   `;
   el.appendChild(photoWrap);
 
-  // 文字输入（带语音输入）
+  // 文字输入
   const textFields = [];
   if (mode === 'see' || mode === 'meet') {
-    textFields.push({ key: 'what', label: '我看到了什么？', ph: '墙上的光斑像一片正在移动的叶子。', big: false, voiceHint: '说说你眼前看到了什么。' });
+    textFields.push({ key: 'what', label: '我看到了什么？', ph: '墙上的光斑像一片正在移动的叶子。', big: false });
   }
   if (mode === 'feel' || mode === 'meet') {
-    textFields.push({ key: 'feel', label: mode === 'feel' ? '我现在感受到了什么？' : '我感受到了什么？', ph: '', big: mode === 'feel', voiceHint: mode === 'feel' ? '想到什么就说什么，不必整理。' : '说说你看到了什么，以及它让你想到了什么。' });
+    textFields.push({ key: 'feel', label: mode === 'feel' ? '我现在感受到了什么？' : '我感受到了什么？', ph: '', big: mode === 'feel' });
   }
   textFields.forEach(tf => {
     const d = document.createElement('div');
     d.className = 'field-gap';
     d.innerHTML = `<label class="field">${tf.label}</label>
-      <div class="voice-input">
-        <textarea class="${tf.big ? 'big' : ''}" data-field="${tf.key}" placeholder="${tf.ph}"></textarea>
-        <button type="button" class="voice-btn" data-voice="${tf.key}" data-voice-hint="${tf.voiceHint}" aria-label="语音输入">🎙️</button>
-      </div>`;
+      <textarea class="${tf.big ? 'big' : ''}" data-field="${tf.key}" placeholder="${tf.ph}"></textarea>`;
     el.appendChild(d);
   });
-  // 语音输入按钮绑定
-  el.querySelectorAll('.voice-btn').forEach(btn => {
-    btn.addEventListener('click', () => startVoice(btn.dataset.voice, btn.dataset.voiceHint));
-  });
-
   // 次级操作：画一下 / 继续补充
   const sub = document.createElement('div');
   sub.className = 'collapse';
@@ -288,150 +280,6 @@ async function onPhotoSelect(e) {
 /* ================= 白板 ================= */
 function initBoard() {
   boardRef = PondDrawing.mount(document.getElementById('board-canvas'), document.getElementById('board-tools'), autosave, message => toast(message, true));
-}
-
-/* ================= 语音输入（Web Speech API） ================= */
-let voiceRec = null;         // SpeechRecognition 实例
-let voiceTargetField = null; // 目标 textarea 的 data-field key
-let voiceFinal = '';         // 已确认的最终文字
-let voiceLiveText = '';      // 正在识别中的临时文字
-let voiceOverlayEl = null;   // 浮层 DOM
-
-function startVoice(fieldKey, hint) {
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    toast('当前浏览器不支持语音识别，请改用键盘输入。', true);
-    return;
-  }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  // 若已有实例则先停止
-  if (voiceRec) { try { voiceRec.stop(); } catch (e) {} voiceRec = null; }
-
-  voiceTargetField = fieldKey;
-  voiceFinal = '';
-  voiceLiveText = '';
-  const rec = new SR();
-  rec.lang = 'zh-CN';
-  rec.continuous = true;   // 长语音：连续识别
-  rec.interimResults = true; // 实时中间结果
-  rec.maxAlternatives = 1;
-
-  rec.onresult = (e) => {
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const r = e.results[i];
-      if (r.isFinal) { voiceFinal += r[0].transcript; }
-      else { interim += r[0].transcript; }
-    }
-    voiceLiveText = voiceFinal + interim;
-    updateVoiceOverlay();
-  };
-  rec.onerror = (e) => {
-    const errMap = {
-      'not-allowed': '麦克风权限被拒绝。你仍然可以直接打字记录。',
-      'no-speech': '没有听到声音，请再试一次。',
-      'audio-capture': '没有找到可用的麦克风。',
-      'network': '网络异常，语音识别失败。',
-      'service-not-allowed': '语音服务不可用，请改用键盘输入。',
-      'aborted': ''
-    };
-    const msg = errMap[e.error] || ('语音识别出错：' + e.error);
-    voiceRec = null;
-    updateVoiceOverlay(msg);
-    // 若已有最终文字，保留，不中断
-    if (e.error === 'aborted') { return; }
-  };
-  rec.onend = () => {
-    voiceRec = null;
-    updateVoiceOverlay();
-  };
-
-  voiceRec = rec;
-  showVoiceOverlay(hint);
-  try { rec.start(); } catch (e) { toast('无法启动语音识别', true); closeVoiceOverlay(); }
-}
-
-function showVoiceOverlay(hint) {
-  closeVoiceOverlay();
-  const overlay = document.createElement('div');
-  overlay.className = 'voice-overlay';
-  overlay.id = 'voice-overlay';
-  overlay.innerHTML = `
-    <div class="voice-panel" role="dialog" aria-modal="true" aria-label="正在听">
-      <div class="v-icon">🎙️</div>
-      <div class="v-title">正在听……</div>
-      <div class="v-hint">${esc(hint || '直接说就好，不用组织完整。')}</div>
-      <div class="v-live empty" id="voice-live">（还没听到内容…）</div>
-      <div class="v-err" id="voice-err"></div>
-      <div class="v-actions">
-        <button class="btn btn-ghost" id="voice-pause" aria-label="暂停">暂停</button>
-        <button class="btn btn-primary" id="voice-done" aria-label="完成并填入">完成</button>
-        <button class="btn btn-ghost" id="voice-cancel" aria-label="取消">取消</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  voiceOverlayEl = overlay;
-
-  const pauseBtn = overlay.querySelector('#voice-pause');
-  const doneBtn = overlay.querySelector('#voice-done');
-  const cancelBtn = overlay.querySelector('#voice-cancel');
-  // 点击蒙层不关闭，防止误触
-  pauseBtn.addEventListener('click', togglePause);
-  doneBtn.addEventListener('click', commitVoice);
-  cancelBtn.addEventListener('click', cancelVoice);
-}
-
-function togglePause() {
-  if (!voiceRec) return;
-  const btn = document.getElementById('voice-pause');
-  if (btn.dataset.paused === '1') {
-    voiceRec.start();
-    btn.dataset.paused = '0';
-    btn.textContent = '暂停';
-  } else {
-    voiceRec.stop();
-    btn.dataset.paused = '1';
-    btn.textContent = '继续';
-  }
-}
-
-function updateVoiceOverlay(errMsg) {
-  if (!voiceOverlayEl) return;
-  const live = voiceOverlayEl.querySelector('#voice-live');
-  const err = voiceOverlayEl.querySelector('#voice-err');
-  if (live) {
-    const txt = voiceLiveText || voiceFinal;
-    live.textContent = txt || '（还没听到内容…）';
-    live.classList.toggle('empty', !txt);
-  }
-  if (err) err.textContent = errMsg || '';
-}
-
-function commitVoice() {
-  const finalText = (voiceFinal + voiceLiveText).trim();
-  if (voiceRec) { try { voiceRec.stop(); } catch (e) {} voiceRec = null; }
-  closeVoiceOverlay();
-  if (finalText) {
-    const el = document.querySelector(`[data-field="${voiceTargetField}"]`);
-    if (el) {
-      // 追加到已有文字末尾（分隔）
-      const existing = el.value.trim();
-      el.value = existing ? existing + '\n' + finalText : finalText;
-      autosave();
-    }
-    toast('已把说的话转成文字，可继续编辑。');
-  } else {
-    toast('没有识别到内容。', true);
-  }
-}
-
-function cancelVoice() {
-  if (voiceRec) { try { voiceRec.abort(); } catch (e) {} voiceRec = null; }
-  closeVoiceOverlay();
-}
-
-function closeVoiceOverlay() {
-  if (voiceOverlayEl) { voiceOverlayEl.remove(); voiceOverlayEl = null; }
-  voiceLiveText = '';
 }
 
 /* ================= 校验与保存 ================= */

@@ -23,7 +23,7 @@
   .rec-card { content-visibility: auto; contain-intrinsic-size: auto 300px; }
   .detail-title, .detail-text, .ce-val, .link-item, .tag-chip { overflow-wrap: anywhere; }
   .detail-title { text-wrap: balance; }
-  .modal, .voice-panel { overscroll-behavior: contain; }
+  .modal{ overscroll-behavior: contain; }
   .save-bar { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
   .toast { max-width: min(90vw, 600px); overflow-wrap: anywhere; }
   html, body { margin: 0; padding: 0; }
@@ -102,27 +102,6 @@
   textarea:focus, input:focus { outline: none; border-color: var(--lake); box-shadow: 0 0 0 3px rgba(78,156,173,.15); }
   textarea.big { min-height: 88px; font-size: 16px; }
   .placeholder-hint { font-size: 12px; color: var(--sub); opacity: .75; margin-top: 4px; }
-
-  /* 语音输入 */
-  .voice-input { position: relative; }
-  .voice-input textarea { padding-right: 52px; }
-  .voice-btn { position: absolute; right: 8px; bottom: 8px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(78,156,173,.3); background: rgba(255,255,255,.9); cursor: pointer; font-size: 17px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: background .15s, transform .1s; }
-  .voice-btn:hover { background: var(--pale); }
-  .voice-btn:active { transform: scale(.94); }
-  .voice-btn.recording { background: var(--coral); border-color: var(--coral); color: #fff; animation: pulse 1.2s infinite; }
-  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(229,82,58,.4);} 50% { box-shadow: 0 0 0 10px rgba(229,82,58,0);} }
-
-  /* 语音识别浮层 */
-  .voice-overlay { position: fixed; inset: 0; background: rgba(23,59,71,.55); display: flex; align-items: center; justify-content: center; z-index: 600; padding: 24px; backdrop-filter: blur(4px); }
-  .voice-panel { background: #fff; border-radius: 20px; padding: 28px 26px; max-width: 460px; width: 100%; text-align: center; box-shadow: 0 24px 60px rgba(23,59,71,.4); }
-  .voice-panel .v-icon { font-size: 40px; margin-bottom: 8px; }
-  .voice-panel .v-title { font-size: 19px; font-weight: 800; color: var(--ink); margin-bottom: 6px; }
-  .voice-panel .v-hint { font-size: 13px; color: var(--sub); margin-bottom: 16px; }
-  .voice-panel .v-live { min-height: 60px; font-size: 16px; color: var(--ink); background: var(--pale); border-radius: 12px; padding: 14px; margin-bottom: 6px; text-align: left; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
-  .voice-panel .v-live.empty { color: var(--sub); font-style: normal; opacity: .7; }
-  .voice-panel .v-err { color: var(--coral); font-size: 13px; margin: 8px 0; min-height: 18px; }
-  .voice-panel .v-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 14px; }
-  .voice-panel .v-actions .btn { flex: 1 1 120px; }
 
   .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0 14px; }
   .photo-item { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 1; background: rgba(255,255,255,.6); border: 1px solid rgba(78,156,173,.2); }
@@ -358,11 +337,11 @@ textarea,input[type=text],input[type=date]{border-radius:16px;border:1px solid #
 textarea.big{min-height:115px}.placeholder-hint{opacity:1;font-size:11px;color:#648290}.collapse{border-top:1px solid #518b9d20;margin-top:24px;padding-top:10px}.collapse-head{font-weight:500;font-size:13px;min-height:44px}
 .btn{font-size:14px;border-radius:14px;letter-spacing:.3px;min-height:44px;font-weight:500}.btn-primary{background:linear-gradient(135deg,#397d95,#24667e);box-shadow:0 6px 18px #286a8120}.btn-primary:hover{background:#205d74;box-shadow:0 8px 22px #286a8130}.btn-ghost{border-color:#568fa52b;background:#ffffffa6}.btn-sec{border-style:solid;border-color:#568fa52b}
 .save-bar{border-radius:18px;padding:12px;background:#ecf7fad9;margin-top:8px;bottom:12px;border:1px solid #fff;box-shadow:0 6px 30px #286a8110}.save-bar .btn{padding:15px}
-.photo-add{border-radius:18px;border-width:1px;background:#ffffff75}.photo-item{border-radius:18px}.board{border-radius:18px}.board-tools{padding:13px}.board-tools .tool{min-height:36px;border-radius:10px}.voice-btn{min-width:38px;min-height:38px}
+.photo-add{border-radius:18px;border-width:1px;background:#ffffff75}.photo-item{border-radius:18px}.board{border-radius:18px}.board-tools{padding:13px}.board-tools .tool{min-height:36px;border-radius:10px}
 .pond-head{margin:14px 0 24px}.pond-title{font-size:30px;font-weight:500;letter-spacing:1px}.pond-toolbar{gap:9px;margin-bottom:18px}.filter-chip{padding:9px 16px;font-size:12px;min-height:40px;border-color:#568fa52b;background:#ffffff90}.filter-chip.active{background:var(--deep)}
 .cards{gap:22px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}.rec-card{border-radius:22px}.rec-body{padding:18px}.rec-title{font-size:17px;font-weight:600;margin-bottom:8px}.rec-thumb .noimg{background:linear-gradient(130deg,#e3f2f6,#f7fbfc);font-size:17px;font-family: var(--font-ui);line-height:1.8;padding:28px}.rec-tags{margin-top:12px}
 .pond-scene{background:linear-gradient(#dbf0f430,#95c6d738),url('assets/pond-water.webp') center/cover;border-radius:28px;min-height:460px;border-color:#fff;box-shadow:var(--shadow)}.pond-scene .scene-hint{color:#315866;text-shadow:none;background:#ffffffb5;padding:8px;bottom:0}
-.empty-state{background:#ffffff55;border:1px solid #fff;border-radius:26px;padding:64px 20px;margin-top:18px}.modal,.voice-panel,.scoop-panel{border-radius:26px;background:#f6fbfd;border:1px solid #fff}.modal-mask{backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);background:#183c4a35}.modal .opt{border-color:#568fa523}.toast{max-width:calc(100vw - 32px);width:max-content;text-align:center;font-size:13px;line-height:1.5}
+.empty-state{background:#ffffff55;border:1px solid #fff;border-radius:26px;padding:64px 20px;margin-top:18px}.modal,.scoop-panel{border-radius:26px;background:#f6fbfd;border:1px solid #fff}.modal-mask{backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);background:#183c4a35}.modal .opt{border-color:#568fa523}.toast{max-width:calc(100vw - 32px);width:max-content;text-align:center;font-size:13px;line-height:1.5}
 .saved-card{padding:46px 32px}.saved-card h1{font-size:25px;font-weight:500}.detail-text{line-height:1.95}.detail-section h3{font-weight:500}.link-item{padding:18px;border-radius:18px}.card-export{border-radius:24px;padding:34px}
 :focus-visible{outline:3px solid #e78657;outline-offset:4px}button,a,textarea,input,select{touch-action:manipulation}select{max-width:100%;font:inherit;color:var(--ink)}
 @media(min-width:900px){#view-home{padding-top:6px}.hero{padding-top:34px;padding-bottom:42px}.home-foot{margin-top:34px}}
@@ -374,7 +353,7 @@ textarea.big{min-height:115px}.placeholder-hint{opacity:1;font-size:11px;color:#
 .collapse-head{border:0;background:transparent;font-family: var(--font-ui);text-align:left;width:100%}.entry-section-label{flex-wrap:wrap}.entry-section-label::after{min-width:24px}
 
 /* 液态玻璃按钮：透光表面、弧形高光和轻微折射色边。 */
-.btn, .filter-chip, .brand-nav, .voice-btn, .board-tools .tool, .entry-arrow, .photo-add {
+.btn, .filter-chip, .brand-nav, .board-tools .tool, .entry-arrow, .photo-add {
   color: #24596e;
   border: 1px solid rgba(255,255,255,.88);
   background:
@@ -401,12 +380,9 @@ textarea.big{min-height:115px}.placeholder-hint{opacity:1;font-size:11px;color:#
     linear-gradient(135deg, rgba(184,224,240,.94), rgba(139,196,219,.90));
   box-shadow: inset 0 1px 2px #ffffffed, inset 0 -2px 3px #407e9730, 0 6px 18px #286a812b, 0 0 0 1px #5e9db353;
   font-weight: 600;
-}
-.voice-btn, .entry-arrow { border-radius: 50%; }
-.voice-btn { width: 40px; height: 40px; }
+} .entry-arrow { border-radius: 50%; }
 .photo-add { border-radius: 24px; border-style: solid; }
 .entry-feel .entry-arrow { color: #9c4524; }
-.voice-btn.recording { background: #b93625; border-color: #fff; color: #fff; }
 .btn-primary:hover, .filter-chip.active:hover {
   background: radial-gradient(ellipse at 16% 0%, #ffffffe0, transparent 52%), linear-gradient(135deg, #c6e8f5, #a0d0e2);
 }
@@ -415,7 +391,7 @@ textarea.big{min-height:115px}.placeholder-hint{opacity:1;font-size:11px;color:#
 }
 @media (hover: hover) and (pointer: fine) {
   .btn:not(:disabled):not([aria-disabled='true']):hover, .filter-chip:not(:disabled):hover,
-  .brand-nav:hover, .voice-btn:not(.recording):hover, .board-tools .tool:not(:disabled):hover,
+  .brand-nav:hover, .board-tools .tool:not(:disabled):hover,
   .photo-add:hover {
     background-color: rgba(255,255,255,.38);
     transform: translateY(-1px);
@@ -423,23 +399,20 @@ textarea.big{min-height:115px}.placeholder-hint{opacity:1;font-size:11px;color:#
   }
 }
 .btn:not(:disabled):not([aria-disabled='true']):active, .filter-chip:not(:disabled):active,
-.brand-nav:active, .voice-btn:active, .board-tools .tool:not(:disabled):active, .photo-add:active {
+.brand-nav:active, .board-tools .tool:not(:disabled):active, .photo-add:active {
   transform: translateY(1px) scale(.98);
   box-shadow: inset 0 2px 4px #3d7d9926, inset 0 -1px 1px #fff, 0 2px 6px #26637d1c;
 }
-.btn:focus-visible, .filter-chip:focus-visible, .brand-nav:focus-visible,
-.voice-btn:focus-visible, .board-tools .tool:focus-visible, .photo-add:focus-visible {
+.btn:focus-visible, .filter-chip:focus-visible, .brand-nav:focus-visible, .board-tools .tool:focus-visible, .photo-add:focus-visible {
   outline: 3px solid #286a81; outline-offset: 4px;
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .btn, .filter-chip, .brand-nav, .voice-btn, .board-tools .tool, .entry-arrow, .photo-add { background: #f0f8fb; }
+  .btn, .filter-chip, .brand-nav, .board-tools .tool, .entry-arrow, .photo-add { background: #f0f8fb; }
   .btn-primary, .btn-primary:hover, .filter-chip.active, .filter-chip.active:hover, .board-tools .tool.active { background: #b6dce9; }
-  .voice-btn.recording { background: #b93625; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .btn, .filter-chip, .brand-nav, .voice-btn, .board-tools .tool, .entry-arrow, .photo-add { background: #f0f8fb; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .btn, .filter-chip, .brand-nav, .board-tools .tool, .entry-arrow, .photo-add { background: #f0f8fb; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .btn-primary, .btn-primary:hover, .filter-chip.active, .filter-chip.active:hover, .board-tools .tool.active { background: #b6dce9; }
-  .voice-btn.recording { background: #b93625; }
 }
 
 /* iOS 小组件层次：保留浅蓝水面，统一卡片与分段控件。 */
